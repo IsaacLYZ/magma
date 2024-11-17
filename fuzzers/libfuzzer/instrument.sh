@@ -8,16 +8,24 @@ set -e
 # - env MAGMA: path to Magma support files
 # - env OUT: path to directory where artifacts are stored
 # - env CFLAGS and CXXFLAGS must be set to link against Magma instrumentation
+# + env ANDROID: if set, we don't need to change compiler
 ##
 
-export CC="clang"
-export CXX="clang++"
+if [ -z "$ANDROID" ]; then
+	export CC="clang"
+	export CXX="clang++"
+	export LIBS="$LIBS -l:driver.o  -flto $OUT/libclang_rt.fuzzer_no_main-x86_64.a -lstdc++"
+	export CFLAGS="$CFLAGS-fno-sanitize-coverage=stack-depth"
+	export CXXFLAGS="$CXXFLAGS -fno-sanitize-coverage=stack-depth"
+	export LDFLAGS="$LDFLAGS -fno-sanitize-coverage=stack-depth"
+else
+	# export LIBS="$LIBS -l:driver.o -flto $OUT/libFuzzer_android_no_main.a -lstdc++ -lm"
+	export LIBS="$LIBS -l:driver.o -flto $OUT/libFuzzer_android.a -lstdc++ -lm"
+fi
 
 export CFLAGS="$CFLAGS -fsanitize=fuzzer-no-link"
 export CXXFLAGS="$CXXFLAGS -fsanitize=fuzzer-no-link"
 export LDFLAGS="$LDFLAGS -fsanitize=fuzzer-no-link"
-
-export LIBS="$LIBS -l:driver.o $OUT/libFuzzer.a -lstdc++"
 
 "$MAGMA/build.sh"
 "$TARGET/build.sh"
